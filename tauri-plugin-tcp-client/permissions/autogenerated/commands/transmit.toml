@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-transmit"
+description = "Enables the transmit command without any pre-configured scope."
+commands.allow = ["transmit"]
+
+[[permission]]
+identifier = "deny-transmit"
+description = "Denies the transmit command without any pre-configured scope."
+commands.deny = ["transmit"]

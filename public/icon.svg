@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="48"
+   height="48"
+   viewBox="0 0 48 48"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4 (e7c3feb100, 2024-10-09)"
+   sodipodi:docname="icon.svg"
+   inkscape:export-filename="icon128.png"
+   inkscape:export-xdpi="256"
+   inkscape:export-ydpi="256"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#505050"
+     bordercolor="#eeeeee"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#505050"
+     inkscape:document-units="px"
+     inkscape:zoom="12.831042"
+     inkscape:cx="21.237558"
+     inkscape:cy="21.00375"
+     inkscape:window-width="2048"
+     inkscape:window-height="1080"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg1" />
+  <defs
+     id="defs1">
+    <rect
+       x="3.967853"
+       y="7.3846154"
+       width="44.197474"
+       height="34.608496"
+       id="rect1" />
+  </defs>
+  <rect
+     style="fill:#333333;stroke:#808080;stroke-width:0;stroke-linecap:round;stroke-linejoin:round"
+     id="rect2"
+     width="47.852699"
+     height="47.852699"
+     x="0.07365036"
+     y="0.07365036" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <text
+       xml:space="preserve"
+       id="text1"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:semi-condensed;font-size:21.3333px;font-family:Symbola;-inkscape-font-specification:'Symbola Semi-Condensed';text-align:start;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect1);display:inline;fill:#ffffff;stroke:#808080;stroke-width:0;stroke-linecap:round;stroke-linejoin:round"
+       transform="translate(-1.0312165,-3.2928122)"><tspan
+         x="3.96875"
+         y="26.780568"
+         id="tspan3">TCP</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6.66667px;font-family:Symbola;-inkscape-font-specification:Symbola;text-align:start;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#ffffff;stroke:#808080;stroke-width:0;stroke-linecap:round;stroke-linejoin:round"
+       x="1.7815661"
+       y="36.438725"
+       id="text2"><tspan
+         sodipodi:role="line"
+         id="tspan2"
+         x="1.7815661"
+         y="36.438725"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6.66667px;font-family:Symbola;-inkscape-font-specification:Symbola;fill:#ffffff">COMMANDER</tspan></text>
+  </g>
+</svg>
