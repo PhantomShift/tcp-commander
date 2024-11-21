@@ -11,6 +11,7 @@ import kotlinx.coroutines.sync.Mutex
 import java.io.IOException
 import java.net.ConnectException
 import java.net.InetSocketAddress
+import java.net.NoRouteToHostException
 import java.net.Socket
 import java.net.SocketAddress
 import java.net.SocketTimeoutException
@@ -71,6 +72,7 @@ class TcpClientPlugin(private val activity: Activity): Plugin(activity) {
                     || current_port != args.port) {
                     active_socket?.close()
                     active_socket = Socket(args.address, args.port)
+                    active_socket.setReuseAddress(true);
                     current_address = args.address
                     current_port = args.port
                 }
@@ -81,6 +83,9 @@ class TcpClientPlugin(private val activity: Activity): Plugin(activity) {
             } catch (e: SocketTimeoutException) {
                 println(e)
                 ret.put("error", e.toString())
+            } catch (e: NoRouteToHostException) {
+                println(e);
+                ret.put("error", "NoRouteToHostException; potential firewall issue")
             }
             connecting = false
             invoke.resolve(ret)
