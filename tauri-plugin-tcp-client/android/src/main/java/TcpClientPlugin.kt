@@ -94,6 +94,11 @@ class TcpClientPlugin(private val activity: Activity): Plugin(activity) {
 
     @Command
     fun disconnect(invoke: Invoke) {
+        if (connecting) {
+            invoke.resolve()
+            return
+        }
+
         active_socket?.close()
         active_socket = null
         invoke.resolve()
@@ -102,6 +107,13 @@ class TcpClientPlugin(private val activity: Activity): Plugin(activity) {
     @Command
     fun transmit(invoke: Invoke) {
         val ret = JSObject()
+
+        if (connecting) {
+            ret.put("error", "Currently attempting to connect, please wait")
+            invoke.resolve(ret)
+            ret
+        }
+
         if (active_socket?.isConnected != true) {
             ret.put("error", "Error transmitting: not connected to server")
             invoke.resolve(ret)
