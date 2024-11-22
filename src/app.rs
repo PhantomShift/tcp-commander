@@ -105,6 +105,8 @@ pub fn App() -> impl IntoView {
     let port = create_rw_signal(String::new());
     let message = create_rw_signal(String::new());
     let append = create_rw_signal(String::new());
+    let prepend = create_rw_signal(String::new());
+    let prepend_enabled = create_rw_signal(false);
 
     let saved = create_rw_signal(BTreeMap::<String, String>::new());
     let command_name = create_rw_signal(String::new());
@@ -113,6 +115,7 @@ pub fn App() -> impl IntoView {
     let update_port = move |ev| port.set(event_target_value(&ev));
     let update_message = move |ev| message.set(event_target_value(&ev));
     let update_command_name = move |ev| command_name.set(event_target_value(&ev));
+    let update_prepend = move |ev| prepend.set(event_target_value(&ev));
 
     let update_append = move |ev| {
         let updated = event_target_value(&ev);
@@ -177,7 +180,9 @@ pub fn App() -> impl IntoView {
     };
 
     let transmit_message = move |message: String| {
-        let message = message + map_append(&append.get());
+        let front = prepend_enabled.get().then(|| prepend.get()).unwrap_or_default();
+        let message = front + &message + map_append(&append.get());
+        logging::log!("would send {message}");
         spawn_local(async move {
             let args = serde_wasm_bindgen::to_value(&TransmitArgs { message: &message }).unwrap(); 
             let resp = invoke("plugin:tcp-client|transmit", args).await;
@@ -293,10 +298,23 @@ pub fn App() -> impl IntoView {
         let last_append = store_get_string(store, "last_append").await.unwrap_or("CRLF".into());
         logging::log!("Last append: {last_append}");
         append.set(last_append);
+        let last_prepend = store_get_string(store, "last_prepend").await.unwrap_or_default();
+        prepend.set(last_prepend);
+        let last_prepend_enabled = store_get_string(store, "last_prepend_enabled")
+            .await.map_or(false, |s| s.to_lowercase() == "true");
+        prepend_enabled.set(last_prepend_enabled);
     });
 
     let edit_popup = create_node_ref::<html::Dialog>();
     let edit_input = create_node_ref::<html::Input>();
+    let prepend_enable_ref = create_node_ref::<html::Input>();
+
+    create_effect(move |_| {
+        logging::log!("this should print...?");
+        if let Some(input) = prepend_enable_ref.get() {
+            input.set_checked(prepend_enabled.get());
+        }
+    });
 
     let show_popup =move |ev| {
         let name = event_target_value(&ev);
@@ -339,6 +357,49 @@ pub fn App() -> impl IntoView {
                             }
                         />
                     </select>
+                </div>
+                <div>
+                    <p>"Prepend to Messages"</p>
+                    <div class="row"
+                        style:align-items="center"
+                    >
+                        <form on:submit=move |e| {
+                            e.prevent_default();
+                            spawn_local(async move {
+                                let store = store_load("store.json").await;
+                                store_save_string(store, "last_prepend", &prepend.get()).await;
+                            });
+                        }>
+                            <input
+                                on:input=update_prepend
+                                // Might need to use a different event
+                                on:blur=move |_| {
+                                    spawn_local(async move {
+                                        let store = store_load("store.json").await;
+                                        store_save_string(store, "last_prepend", &prepend.get()).await;
+                                    })
+                                }
+                                value=move|| prepend.get()
+                            />
+                        </form>
+                        <label for="prepend-enable">
+                            <input
+                                type="checkbox"
+                                name="prepend-enable"
+                                id="prepend-enable"
+                                _ref = prepend_enable_ref
+                                on:input=move |e| {
+                                    let checkbox = event_target::<web_sys::HtmlInputElement>(&e);
+                                    prepend_enabled.set(checkbox.checked());
+                                    spawn_local(async move {
+                                        let store = store_load("store.json").await;
+                                        store_save_string(store, "last_prepend_enabled", &format!("{}", checkbox.checked())).await;
+                                    })
+                                }
+                            />
+                            "Enable"
+                        </label>
+                    </div>
                 </div>
             </Sidebar>
 
