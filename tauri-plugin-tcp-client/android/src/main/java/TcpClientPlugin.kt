@@ -72,7 +72,6 @@ class TcpClientPlugin(private val activity: Activity): Plugin(activity) {
                     || current_port != args.port) {
                     active_socket?.close()
                     active_socket = Socket(args.address, args.port)
-                    active_socket.setReuseAddress(true);
                     current_address = args.address
                     current_port = args.port
                 }
