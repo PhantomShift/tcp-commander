@@ -111,7 +111,7 @@ class TcpClientPlugin(private val activity: Activity): Plugin(activity) {
         if (connecting) {
             ret.put("error", "Currently attempting to connect, please wait")
             invoke.resolve(ret)
-            ret
+            return
         }
 
         if (active_socket?.isConnected != true) {
