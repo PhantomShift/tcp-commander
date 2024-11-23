@@ -3,7 +3,8 @@ use std::{collections::BTreeMap, net::IpAddr};
 use ev::MouseEvent;
 use leptos::leptos_dom::ev::SubmitEvent;
 use leptos::*;
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde_json::json;
 use wasm_bindgen::prelude::*;
 use web_sys::HtmlDialogElement;
 
@@ -33,26 +34,24 @@ async fn store_load(path: &str) -> f64 {
     ).await.as_f64().expect("failed to get store rid")
 }
 
-async fn store_save_string(rid: f64, key: &str, value: &str) {
-    invoke("plugin:store|set",
-        serde_wasm_bindgen::to_value(&StorePluginSetArgs {
-            rid, key, value
-        }).expect("failed to serialize args")
-    ).await;
+async fn store_set<T: Serialize>(rid: f64, key: &str, val: T) -> Result<(), serde_wasm_bindgen::Error> {
+    let args = serde_wasm_bindgen::to_value(&json!({
+        "rid": rid,
+        "key": key,
+        "value": val
+    }))?;
+
+    invoke("plugin:store|set", args).await;
+    Ok(())
 }
 
-async fn store_get_string(rid: f64, key: &str) -> Option<String> {
-    let val = invoke("plugin:store|get",
-        serde_wasm_bindgen::to_value(&StorePluginGetArgs {
-            rid, key
-        }).expect("failed to serialize args")
-    ).await;
-    logging::log!("Got: {:?}", &val);
-    if let Ok((l, _r)) = serde_wasm_bindgen::from_value::<(String, bool)>(val) {
-        Some(l)
-    } else {
-        None
-    }
+async fn store_get<T: DeserializeOwned>(rid: f64, key: &str) -> Result<Option<T>, serde_wasm_bindgen::Error> {
+    let args = serde_wasm_bindgen::to_value(&json!({
+        "rid": rid,
+        "key": key,
+    }))?;
+    let val = invoke("plugin:store|get", args).await;
+    serde_wasm_bindgen::from_value::<(Option<T>, bool)>(val).map(|r| r.0)
 }
 
 fn map_append(option: &str) -> &str {
@@ -124,7 +123,7 @@ pub fn App() -> impl IntoView {
         // See if this works?
         spawn_local(async move {
             let store = store_load("store.json").await;
-            store_save_string(store, "last_append", &updated).await;
+            store_set(store, "last_append", &updated).await.expect("failed to save");
             logging::log!("Last append saved as {updated}");
         });
     };
@@ -151,10 +150,10 @@ pub fn App() -> impl IntoView {
         spawn_local( {
             let address = address.clone();
             async move {
-                // TODO: Use plugin directly instead
-                invoke("store_set", serde_wasm_bindgen::to_value(&StoreSetArgs { path: "store.json", key: "last_address", value: &address }).unwrap()).await;
+                let store = store_load("store.json").await;
+                store_set(store, "last_address", &address).await.expect("failed to save address");
                 logging::log!("Saved address: {address}");
-                invoke("store_set", serde_wasm_bindgen::to_value(&StoreSetArgs { path: "store.json", key: "last_port", value: &port.to_string() }).unwrap()).await;
+                store_set(store, "last_port", port.to_string()).await.expect("failed to save port");
                 logging::log!("Saved port: {port}");
             }
         });
@@ -203,15 +202,8 @@ pub fn App() -> impl IntoView {
         let message = message.clone();
         saved.update(|saved| { saved.insert(name.clone(), message.clone()); });
         async move {
-            let store = invoke("plugin:store|load", serde_wasm_bindgen::to_value(&Load { path: "commands.json", options: Some(LoadOptions { autoSave: Some(true) }) }).unwrap()).await;
-            logging::log!("{store:?}, {:?}", store.js_typeof());
-            // let store = store.unchecked_into::<Store>();
-            let store = store.as_f64().unwrap();
-            invoke("plugin:store|set", serde_wasm_bindgen::to_value(&StorePluginSetArgs {
-                rid: store,
-                key: &name,
-                value: &message,
-            }).unwrap()).await;
+            let store = store_load("commands.json").await;
+            store_set(store, &name, &message).await.expect("failed to save command");
         }
     });
 
@@ -240,10 +232,7 @@ pub fn App() -> impl IntoView {
             let resp = invoke("ask", args).await;
             if let Ok(true) = serde_wasm_bindgen::from_value(resp) {
                 saved.update(|saved| { saved.remove(&name); });
-
-                let store = invoke("plugin:store|load", serde_wasm_bindgen::to_value(&Load { path: "commands.json", options: Some(LoadOptions { autoSave: Some(true) }) }).unwrap()).await;
-                logging::log!("{store:?}, {:?}", store.js_typeof());
-                let store = store.as_f64().unwrap();
+                let store = store_load("commands.json").await;
                 invoke("plugin:store|delete", serde_wasm_bindgen::to_value(&StorePluginDeleteArgs {
                     rid: store,
                     key: &name,
@@ -281,9 +270,7 @@ pub fn App() -> impl IntoView {
         leptos::logging::log!("Last port: {last_port}");
 
         // Load saved commands
-        let store = invoke("plugin:store|load", serde_wasm_bindgen::to_value(&Load { path: "commands.json", options: Some(LoadOptions { autoSave: Some(true) }) }).unwrap()).await;
-        logging::log!("{store:?}, {:?}", store.js_typeof());
-        let store = store.as_f64().unwrap();
+        let store = store_load("commands.json").await;
         let entries = invoke("plugin:store|entries", serde_wasm_bindgen::to_value(&EntriesArgs { rid: store }).unwrap()).await;
         let entries = serde_wasm_bindgen::from_value::<Vec<(String, String)>>(entries).unwrap();
         for (name, val) in entries.iter() {
@@ -295,13 +282,15 @@ pub fn App() -> impl IntoView {
         logging::log!("Entries: {entries:?}");
         
         let store = store_load("store.json").await;
-        let last_append = store_get_string(store, "last_append").await.unwrap_or("CRLF".into());
+        let last_append = store_get(store, "last_append")
+            .await.into_iter().next().flatten().unwrap_or("CRLF".into());
         logging::log!("Last append: {last_append}");
         append.set(last_append);
-        let last_prepend = store_get_string(store, "last_prepend").await.unwrap_or_default();
+        let last_prepend = store_get(store, "last_prepend")
+            .await.into_iter().next().flatten().unwrap_or("CRLF".into());
         prepend.set(last_prepend);
-        let last_prepend_enabled = store_get_string(store, "last_prepend_enabled")
-            .await.map_or(false, |s| s.to_lowercase() == "true");
+        let last_prepend_enabled = store_get(store, "last_prepend_enabled")
+            .await.into_iter().next().flatten().is_some_and(|enabled| enabled);
         prepend_enabled.set(last_prepend_enabled);
     });
 
@@ -356,7 +345,7 @@ pub fn App() -> impl IntoView {
                         e.prevent_default();
                         spawn_local(async move {
                             let store = store_load("store.json").await;
-                            store_save_string(store, "last_prepend", &prepend.get()).await;
+                            store_set(store, "last_prepend", prepend.get()).await.expect("failed to save");
                         });
                     }>
                         <input
@@ -365,7 +354,7 @@ pub fn App() -> impl IntoView {
                             on:blur=move |_| {
                                 spawn_local(async move {
                                     let store = store_load("store.json").await;
-                                    store_save_string(store, "last_prepend", &prepend.get()).await;
+                                    store_set(store, "last_prepend", prepend.get()).await.expect("failed to save");
                                 })
                             }
                             value=move|| prepend.get()
@@ -380,7 +369,8 @@ pub fn App() -> impl IntoView {
                             prepend_enabled.update(|b| *b = !*b);
                             spawn_local(async move {
                                 let store = store_load("store.json").await;
-                                store_save_string(store, "last_prepend_enabled", &format!("{}", prepend_enabled.get())).await;
+                                store_set(store, "last_prepend_enabled", prepend_enabled.get()).await
+                                    .expect("failed to save");
                             })
                         }
                     >
