@@ -1,5 +1,6 @@
 import java.util.Properties
 import java.io.FileInputStream
+import com.android.build.gradle.internal.api.BaseVariantOutputImpl
 
 plugins {
     id("com.android.application")
@@ -66,6 +67,14 @@ android {
     }
     buildFeatures {
         buildConfig = true
+    }
+
+    applicationVariants.all {
+        val variant = this
+        variant.outputs.all {
+            val output = this as BaseVariantOutputImpl
+            output.outputFileName = "tcp-commander-${variant.baseName}-${variant.versionName}.apk"
+        }
     }
 }
 
