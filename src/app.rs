@@ -14,6 +14,10 @@ use crate::model::*;
 extern "C" {
     #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "core"])]
     async fn invoke(cmd: &str, args: JsValue) -> JsValue;
+
+    // I have no idea why it can't find the plugin, temporary(?) solution
+    #[wasm_bindgen(js_namespace = ["window", "__TAURI_PLUGIN_CLIPBOARD_MANAGER__"])]
+    async fn writeText(message: String) -> JsValue;
 }
 
 #[wasm_bindgen]
@@ -259,6 +263,14 @@ pub fn App() -> impl IntoView {
             window().alert_with_message(&format!("No command with name '{name}' found")).unwrap();
         }
     };
+    let copy = move |ev| {
+        let name = event_target_value(&ev);
+        if let Some(message) = saved.get().get(&name).cloned() {
+            spawn_local(async move {
+                writeText(message).await;
+            });
+        }
+    };
 
     spawn_local(async move {
         let resp = invoke("initialize", JsValue::null()).await;
@@ -440,13 +452,14 @@ pub fn App() -> impl IntoView {
                         let name = command.0;
                         let message = command.1;
                         view ! {
-                            <div class="light-contrast" style="padding: 10px; border-radius: 10px; margin: 10px;">
+                            <div class="light-contrast" style="padding: 10px; border-radius: 10px; margin: 4px;">
                                 <p>{&name}</p>
                                 <p>{&message}</p>
                                 <div class="row">
-                                    <button value={&name} on:click=send style="margin: 4px">"Send"</button>
-                                    <button value={&name} on:click=delete style="margin: 4px">"Delete"</button>
-                                    <button value={&name} on:click=show_popup style="margin: 4px">"Edit"</button>
+                                    <button value={&name} on:click=send style="margin: 2px">"Send"</button>
+                                    <button value={&name} on:click=copy style="margin: 2px">"Copy"</button>
+                                    <button value={&name} on:click=delete style="margin: 2px">"Delete"</button>
+                                    <button value={&name} on:click=show_popup style="margin: 2px">"Edit"</button>
                                 </div>
                             </div>
                         }
