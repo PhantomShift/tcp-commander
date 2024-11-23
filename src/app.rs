@@ -289,7 +289,7 @@ pub fn App() -> impl IntoView {
         logging::log!("Last append: {last_append}");
         append.set(last_append);
         let last_prepend = store_get(store, "last_prepend")
-            .await.into_iter().next().flatten().unwrap_or("CRLF".into());
+            .await.into_iter().next().flatten().unwrap_or_default();
         prepend.set(last_prepend);
         let last_prepend_enabled = store_get(store, "last_prepend_enabled")
             .await.into_iter().next().flatten().is_some_and(|enabled| enabled);
