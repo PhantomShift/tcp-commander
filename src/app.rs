@@ -297,13 +297,15 @@ pub fn App() -> impl IntoView {
     });
 
     let edit_popup = create_node_ref::<html::Dialog>();
-    let edit_input = create_node_ref::<html::Input>();
+    let message_edit_input = create_node_ref::<html::Input>();
+    let name_edit_input = create_node_ref::<html::Input>();
 
     let show_popup =move |ev| {
         let name = event_target_value(&ev);
         if let Some(dialog) = edit_popup.get() {
             dialog.set_attribute("edit-target", &name).expect("failed to set edit-target");
-            edit_input.get().unwrap().set_value(&saved.get().get(&name).cloned().unwrap_or_default());
+            message_edit_input.get().unwrap().set_value(&saved.get().get(&name).cloned().unwrap_or_default());
+            name_edit_input.get().unwrap().set_value(&name);
             dialog.show_modal().unwrap();
         }
     };
@@ -461,21 +463,51 @@ pub fn App() -> impl IntoView {
                     <form on:submit=move|e| {
                         e.prevent_default();
                         let action = e.submitter().unwrap().get_attribute("value").unwrap();
+                        logging::log!("Aciton: {action}");
                         let target = edit_popup.get().unwrap().get_attribute("edit-target").expect("edit-target not set");
                         match action.as_str() {
                             "submit" => {
-                                let val = edit_input.get().expect("input should exist").value();
-                                if Some(&val) == saved.get().get(&target) {
+                                let message = message_edit_input.get().expect("input should exist").value();
+                                let name = name_edit_input.get().expect("input should exist").value();
+                                
+                                if target != name && saved.get().contains_key(&name) {
+                                    window().alert_with_message(
+                                        &format!("Another command called {name} exists")
+                                    ).unwrap();
+                                    return;
+                                }
+
+                                if (target == name)
+                                && (Some(&message) == saved.get().get(&target)) {
                                     window().alert_with_message("Message unchanged!").unwrap();
                                 } else {
-                                    save_command.dispatch((target, val));
-                                    edit_popup.get().unwrap().close();
+                                    spawn_local(async move {
+                                        let store = store_load("commands.json").await;
+                                        if name != target {
+                                            store_delete(store, &target).await
+                                                .expect("failed to delete command");
+                                            // Hopefully this operation sending like
+                                            // 20 signals doesn't explode anything
+                                            saved.update(|commands| {
+                                                commands.remove(&target);
+                                            });
+                                        }
+                                        save_command.dispatch((name, message));
+                                        edit_popup.get().unwrap().close();
+                                    });
                                 }
                             }
                             _ => edit_popup.get().unwrap().close(),
                         }
                     }>
-                        <input autofocus type="text" id="command-edit" _ref=edit_input/>
+                        <div class="row">
+                            <label class="light-contrast" for="name-edit">"Name"</label>
+                            <input autofocus type="text" id="name-edit" _ref=name_edit_input/>
+                        </div>
+                        <div class="row">
+                            <label class="light-contrast" for="command-edit">"Message"</label>
+                            <input autofocus type="text" id="command-edit" _ref=message_edit_input/>
+                        </div>
                         <button value="submit">"Confirm"</button>
                         <button value="cancel">"Cancel"</button>
                     </form>

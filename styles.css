@@ -40,6 +40,7 @@
 .row {
   display: flex;
   justify-content: center;
+  align-items: center;
 }
 
 a {
@@ -113,6 +114,7 @@ button {
 }
 
 .light-contrast {
+  color: #0f0f0f;
   background-color: #efefef;
 }
 
@@ -146,6 +148,7 @@ button {
   }
 
   .light-contrast {
+    color: #f6f6f6;
     background-color: #383838;
   }
 }
