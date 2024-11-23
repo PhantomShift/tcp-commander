@@ -54,6 +54,11 @@ async fn store_get<T: DeserializeOwned>(rid: f64, key: &str) -> Result<Option<T>
     serde_wasm_bindgen::from_value::<(Option<T>, bool)>(val).map(|r| r.0)
 }
 
+async fn store_delete(rid: f64, key: &str) -> Result<bool, serde_wasm_bindgen::Error> {
+    let args = serde_wasm_bindgen::to_value(&json!({"rid": rid, "key": key}))?;
+    serde_wasm_bindgen::from_value(invoke("plugin:store|delete", args).await)
+}
+
 fn map_append(option: &str) -> &str {
     match option {
         "LF" => "\n",
@@ -233,11 +238,8 @@ pub fn App() -> impl IntoView {
             if let Ok(true) = serde_wasm_bindgen::from_value(resp) {
                 saved.update(|saved| { saved.remove(&name); });
                 let store = store_load("commands.json").await;
-                invoke("plugin:store|delete", serde_wasm_bindgen::to_value(&StorePluginDeleteArgs {
-                    rid: store,
-                    key: &name,
-                }).unwrap()).await;
-                return true;
+                return store_delete(store, &name).await
+                    .expect("failed to delete key")
             }
             return false;
         }
