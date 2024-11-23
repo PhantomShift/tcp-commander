@@ -1,6 +1,6 @@
 [package]
 name = "tcp-commander"
-version = "0.1.0"
+version = "0.2.0"
 description = "Small GUI application for sending TCP messages"
 authors = ["you"]
 edition = "2021"
