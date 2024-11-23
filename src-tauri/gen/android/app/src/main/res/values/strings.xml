@@ -1,4 +1,4 @@
 <resources>
-    <string name="app_name">tcp-commander</string>
-    <string name="main_activity_title">tcp-commander</string>
+    <string name="app_name">TCP Commander</string>
+    <string name="main_activity_title">TCP Commander</string>
 </resources>
