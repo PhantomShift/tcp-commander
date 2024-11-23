@@ -307,14 +307,6 @@ pub fn App() -> impl IntoView {
 
     let edit_popup = create_node_ref::<html::Dialog>();
     let edit_input = create_node_ref::<html::Input>();
-    let prepend_enable_ref = create_node_ref::<html::Input>();
-
-    create_effect(move |_| {
-        logging::log!("this should print...?");
-        if let Some(input) = prepend_enable_ref.get() {
-            input.set_checked(prepend_enabled.get());
-        }
-    });
 
     let show_popup =move |ev| {
         let name = event_target_value(&ev);
@@ -360,46 +352,43 @@ pub fn App() -> impl IntoView {
                 </div>
                 <div>
                     <p>"Prepend to Messages"</p>
-                    <div class="row"
-                        style:align-items="center"
-                    >
-                        <form on:submit=move |e| {
+                    <form on:submit=move |e| {
+                        e.prevent_default();
+                        spawn_local(async move {
+                            let store = store_load("store.json").await;
+                            store_save_string(store, "last_prepend", &prepend.get()).await;
+                        });
+                    }>
+                        <input
+                            on:input=update_prepend
+                            // Might need to use a different event
+                            on:blur=move |_| {
+                                spawn_local(async move {
+                                    let store = store_load("store.json").await;
+                                    store_save_string(store, "last_prepend", &prepend.get()).await;
+                                })
+                            }
+                            value=move|| prepend.get()
+                            disabled=move|| !prepend_enabled.get()
+                        />
+                    </form>
+                    <button
+                        class="toggle"
+                        toggled=move|| prepend_enabled.get()
+                        on:click=move |e| {
                             e.prevent_default();
+                            prepend_enabled.update(|b| *b = !*b);
                             spawn_local(async move {
                                 let store = store_load("store.json").await;
-                                store_save_string(store, "last_prepend", &prepend.get()).await;
-                            });
-                        }>
-                            <input
-                                on:input=update_prepend
-                                // Might need to use a different event
-                                on:blur=move |_| {
-                                    spawn_local(async move {
-                                        let store = store_load("store.json").await;
-                                        store_save_string(store, "last_prepend", &prepend.get()).await;
-                                    })
-                                }
-                                value=move|| prepend.get()
-                            />
-                        </form>
-                        <label for="prepend-enable">
-                            <input
-                                type="checkbox"
-                                name="prepend-enable"
-                                id="prepend-enable"
-                                _ref = prepend_enable_ref
-                                on:input=move |e| {
-                                    let checkbox = event_target::<web_sys::HtmlInputElement>(&e);
-                                    prepend_enabled.set(checkbox.checked());
-                                    spawn_local(async move {
-                                        let store = store_load("store.json").await;
-                                        store_save_string(store, "last_prepend_enabled", &format!("{}", checkbox.checked())).await;
-                                    })
-                                }
-                            />
-                            "Enable"
-                        </label>
-                    </div>
+                                store_save_string(store, "last_prepend_enabled", &format!("{}", prepend_enabled.get())).await;
+                            })
+                        }
+                    >
+                    {move|| match prepend_enabled.get() {
+                        true => "Enabled",
+                        false => "Disabled"
+                    }}
+                    </button>
                 </div>
             </Sidebar>
 
