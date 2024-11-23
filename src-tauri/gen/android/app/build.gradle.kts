@@ -73,7 +73,9 @@ android {
         val variant = this
         variant.outputs.all {
             val output = this as BaseVariantOutputImpl
-            output.outputFileName = "tcp-commander-${variant.baseName}-${variant.versionName}.apk"
+            if ("-release" in output.outputFileName) {
+                output.outputFileName = "tcp-commander-${variant.baseName}-${variant.versionName}.apk"
+            }
         }
     }
 }
